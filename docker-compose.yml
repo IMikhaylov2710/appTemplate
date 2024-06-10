@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  django:
+    build:
+      context: ./backendDjango
+      dockerfile: ./Dockerfile
+    command: bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; python /dj/back/manage.py runserver 0.0.0.0:8888'
+    volumes:
+    - .:/back
+    ports:
+    - 8888:8888
+    environment:
+    - DATABASE_URL=postgresql://fastapi_traefik:fastapi_traefik@db:5432/fastapi_traefik
+    depends_on:
+    - db
+  web:
+    build: 
+      context: ./backend/
+      dockerfile: ./Dockerfile
+    command: bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; uvicorn API.main:app --host 0.0.0.0 --port 8080'
+    volumes:
+      - .:/API
+    ports:
+      - 8080:8080
+    environment:
+      - DATABASE_URL=postgresql://fastapi_traefik:fastapi_traefik@db:5432/fastapi_traefik
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=fastapi_traefik
+      - POSTGRES_PASSWORD=fastapi_traefik
+      - POSTGRES_DB=fastapi_traefik
+
+  frontend:
+    build:
+      context: ./frontend/
+      dockerfile: ./Dockerfile
+    ports:
+      - 3000:3000
+
+volumes:
+  postgres_data:
+  react_build:
